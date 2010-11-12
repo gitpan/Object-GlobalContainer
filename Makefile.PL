@@ -15,8 +15,10 @@ WriteMakefile1(
           'NAME' => 'Object::GlobalContainer',
           'VERSION_FROM' => 'lib/Object/GlobalContainer.pm',
           'PREREQ_PM' => {
-                           'Class::Inspector' => 1,
-                           'strict' => 1,
+                           'Class::Inspector' => 0,
+                           'strict' => 0,
+                           'Moose' => 0,
+                           'Exporter::Autoclean' => 0,
                          },
           'INSTALLDIRS' => 'site',
           'EXE_FILES' => [],

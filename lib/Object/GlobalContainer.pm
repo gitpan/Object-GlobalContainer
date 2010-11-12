@@ -42,6 +42,22 @@ package Object::GlobalContainer; # A global singleton object container
 # share things globaly. Disable that by using the flag 'notglobal' in the constructor.
 #
 #
+# singleton, off (notglobal)
+# ==========================
+# If you want to disable the singleton behaviour, you can use 'notglobal' to do so:
+#
+#  my $OC1 = Object::GlobalContainer->new( notglobal => 1 );
+#  my $OC2 = Object::GlobalContainer->new( notglobal => 1 );
+#  
+#  $OC1->set('abc','123');
+#  $OC2->set('abc','456');
+#
+#  print $OC1->get('abc'); ## returns 123 !
+#  print $OC2->get('abc'); ## returns 456 !
+#
+# Both instances act as them self, as own separate object.
+#
+#
 # imported function
 # =================
 #
@@ -49,12 +65,16 @@ package Object::GlobalContainer; # A global singleton object container
 #
 #  use Object::GlobalContainer 'objcon';
 #
+#  Object::GlobalContainer->new();
+#
 #  objcon->set('abc','123');
 #  objcon->get('abc');
 #
 # Here it installs the function 'objcon' locally to access the container. Combined with the default behaviour as
 # singleton, it is quite usefull. Please note, the name of the method you can choose by yourself and may be different
 # in every class.
+#
+# Do not forget to call the constructor first!
 #
 #  
 #
@@ -111,7 +131,7 @@ package Object::GlobalContainer; # A global singleton object container
 
 
 
-our $VERSION='0.01';
+our $VERSION='0.02';
 
 use strict;
 use Moose;
@@ -202,7 +222,7 @@ sub set { # void ($key1,$value1,$key2,$value2)
   my $this=shift;
   my $pairs={@_};
 
-  foreach my $key( keys %$pairs ) {
+  foreach my $key ( keys %$pairs ) {
 
     my $location = $this->_hash_location_by_path( path => $key );
 
@@ -221,7 +241,7 @@ sub set { # void ($key1,$value1,$key2,$value2)
 sub _hash_location_by_path {
   my $this = shift;
   my $v={@_};
-  my $path = $v->{'path'};
+  my $path = $v->{'path'} || '';
   my $exec_last = $v->{'exec_last'};
   my $storename =  $this->storename();
   my $dont_create_undef_entry = $v->{'dont_create_undef_entry'};
@@ -229,6 +249,9 @@ sub _hash_location_by_path {
   my $pathlocation;
 
   my $delim = $this->delimiter();
+
+  $path=~ s|^$delim||; ## remove beginning slash
+
 
   my @path = split( /$delim/, $path );
   if (scalar(@path) == 0){ die "path has to less elements" };
@@ -344,7 +367,14 @@ sub exists { # $boolean ($path)
 # That is why I am setting it into the given path and not the classname.
 #
 # If for example dealing with mod_perl and keeping the application in memory, it
-# is very nice to go again over that code, but automatically skipping a new instantiation.
+# is very nice to re-run that code, but automatically skipping a new instantiation.
+#
+# What means that that line:
+#
+#  my $c = $OC->class('classes/database', 'Local::MyDatabaseHandler', foo => 123, bar => 456);
+#
+# will be executed in a different way when running it the second time, if it still is in memory.
+# Then it does not instantiate the class again, but just returns the existing instance.
 #
 # Otherwise you would need to build your own complex if/else line.
 # 
@@ -445,9 +475,11 @@ L<Moose>
 
 =head1 METHODS
 
+
+
 =head2 class
 
- my $classobject = $this->class($path, $classname, %classparam);
+ my $classobject = class($path, $classname, %classparam);
 
 Creates an instance of the given class and sets it to the given path.
 it also returns the new object. It is managed as a singleton, what means,
@@ -465,7 +497,14 @@ what exactly has been set, to keep the application flexible.
 That is why I am setting it into the given path and not the classname.
 
 If for example dealing with mod_perl and keeping the application in memory, it
-is very nice to go again over that code, but automatically skipping a new instantiation.
+is very nice to re-run that code, but automatically skipping a new instantiation.
+
+What means that that line:
+
+ my $c = $OC->class('classes/database', 'Local::MyDatabaseHandler', foo => 123, bar => 456);
+
+will be executed in a different way when running it the second time, if it still is in memory.
+Then it does not instantiate the class again, but just returns the existing instance.
 
 Otherwise you would need to build your own complex if/else line.
 
@@ -473,21 +512,21 @@ Otherwise you would need to build your own complex if/else line.
 
 =head2 delete
 
- $this->delete($path);
+ delete($path);
 
 deletes an entry by removing it from the hash
 
 
 =head2 exists
 
- my $boolean = $this->exists($path);
+ my $boolean = exists($path);
 
 Validates if an entry (key) exists.
 
 
 =head2 get
 
- my $scalar | reference = $this->get($path);
+ my $scalar | reference = get($path);
 
 returns a value by given key, which can be a path.
 
@@ -495,7 +534,7 @@ returns a value by given key, which can be a path.
 
 =head2 set
 
- $this->set($key1, $value1, $key2, $value2);
+ set($key1, $value1, $key2, $value2);
 
 Adds an object (any value or reference).
 Expects a key and a value.
@@ -541,6 +580,25 @@ share things globaly. Disable that by using the flag 'notglobal' in the construc
 
 
 
+=head1 singleton, off (notglobal)
+
+If you want to disable the singleton behaviour, you can use 'notglobal' to do so:
+
+ my $OC1 = Object::GlobalContainer->new( notglobal => 1 );
+ my $OC2 = Object::GlobalContainer->new( notglobal => 1 );
+ 
+ $OC1->set('abc','123');
+ $OC2->set('abc','456');
+
+ print $OC1->get('abc'); ## returns 123 !
+ print $OC2->get('abc'); ## returns 456 !
+
+Both instances act as them self, as own separate object.
+
+
+
+
+
 =head1 imported function
 
 
@@ -548,12 +606,16 @@ The most elegant way to deal with that global container, is to use a local funti
 
  use Object::GlobalContainer 'objcon';
 
+ Object::GlobalContainer->new();
+
  objcon->set('abc','123');
  objcon->get('abc');
 
 Here it installs the function 'objcon' locally to access the container. Combined with the default behaviour as
 singleton, it is quite usefull. Please note, the name of the method you can choose by yourself and may be different
 in every class.
+
+Do not forget to call the constructor first!
 
  
 
@@ -573,6 +635,8 @@ If using the imported function access method, you can change the delimter via a 
  objcon->delimiter('.');
  objcon->set('a.b.c','123');
  objcon->get('a.b.c');
+
+
 
 
 
